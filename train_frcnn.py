@@ -16,6 +16,7 @@ from keras_frcnn import config, data_generators
 from keras_frcnn import losses as losses
 import keras_frcnn.roi_helpers as roi_helpers
 from keras.utils import generic_utils
+from keras.callbacks import CSVLogger
 
 if 'tensorflow' == K.backend():
     import tensorflow as tf
@@ -33,7 +34,9 @@ parser.add_option("-o", "--parser", dest="parser", help="Parser to use. One of s
 				default="pascal_voc")
 parser.add_option("-n", "--num_rois", type="int", dest="num_rois", help="Number of RoIs to process at once.", default=10)
 parser.add_option("--network", dest="network", help="Base network to use. Supports vgg or resnet50.", default='vgg')
-parser.add_option("--hf", dest="horizontal_flips", help="Augment with horizontal flips in training. (Default=true).", action="store_false", default=True)
+parser.add_option("--hf", dest="horizontal_flips", help="Augment with horizontal flips in training. (Default=false).", action="store_true", default=False)
+parser.add_option("--fm", dest="freq_mask", help="Augment with frequency mask in training. (Default=false).", action="store_true", default=False)
+parser.add_option("--tm", dest="time_mask", help="Augment with time mask in training. (Default=false).", action="store_true", default=False)
 parser.add_option("--vf", dest="vertical_flips", help="Augment with vertical flips in training. (Default=false).", action="store_true", default=False)
 parser.add_option("--rot", "--rot_90", dest="rot_90", help="Augment with 90 degree rotations in training. (Default=false).",
 				  action="store_true", default=False)
@@ -68,6 +71,8 @@ C = config.Config()
 C.use_horizontal_flips = bool(options.horizontal_flips)
 C.use_vertical_flips = bool(options.vertical_flips)
 C.rot_90 = bool(options.rot_90)
+C.use_freq_mask = bool(options.freq_mask)
+C.use_time_mask = bool(options.time_mask)
 
 # mkdir to save models.
 if not os.path.isdir("models"):
@@ -131,11 +136,13 @@ random.shuffle(all_imgs)
 
 num_imgs = len(all_imgs)
 
-train_imgs = [s for s in all_imgs if s['imageset'] == 'trainval']
-val_imgs = [s for s in all_imgs if s['imageset'] == 'test']
+train_imgs = [s for s in all_imgs if s['imageset'] == 'train']
+val_imgs = [s for s in all_imgs if s['imageset'] == 'val']
+test_imgs = [s for s in all_imgs if s['imageset'] == 'test']
 
 print('Num train samples {}'.format(len(train_imgs)))
 print('Num val samples {}'.format(len(val_imgs)))
+print('Num test samples {}'.format(len(test_imgs)))
 
 
 data_gen_train = data_generators.get_anchor_gt(train_imgs, classes_count, C, nn.get_img_output_length, K.image_dim_ordering(), mode='train')
@@ -163,7 +170,7 @@ model_classifier = Model([img_input, roi_input], classifier)
 
 # this is a model that holds both the RPN and the classifier, used to load/save weights for the models
 model_all = Model([img_input, roi_input], rpn[:2] + classifier)
-
+print(model_all.summary())
 # load pretrained weights
 try:
     print('loading weights from {}'.format(C.base_net_weights))
@@ -200,6 +207,9 @@ else:
 model_rpn.compile(optimizer=optimizer, loss=[losses.rpn_loss_cls(num_anchors), losses.rpn_loss_regr(num_anchors)])
 model_classifier.compile(optimizer=optimizer_classifier, loss=[losses.class_loss_cls, losses.class_loss_regr(len(classes_count)-1)], metrics={'dense_class_{}'.format(len(classes_count)): 'accuracy'})
 model_all.compile(optimizer='sgd', loss='mae')
+
+csv = 'training.log'
+csv_logger = CSVLogger(csv)
 
 epoch_length = int(options.epoch_length)
 num_epochs = int(options.num_epochs)

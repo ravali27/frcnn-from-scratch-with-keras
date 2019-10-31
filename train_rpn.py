@@ -38,8 +38,10 @@ parser.add_option("-p", "--path", dest="train_path", help="Path to training data
 parser.add_option("-o", "--parser", dest="parser", help="Parser to use. One of simple or pascal_voc",
 				default="pascal_voc")
 parser.add_option("-n", "--num_rois", type="int", dest="num_rois", help="Number of RoIs to process at once.", default=10)
-parser.add_option("--network", dest="network", help="Base network to use. Supports vgg or resnet50.", default='vgg19')
+parser.add_option("--network", dest="network", help="Base network to use. Supports vgg or resnet50.", default='vgg')
 parser.add_option("--hf", dest="horizontal_flips", help="Augment with horizontal flips in training. (Default=false).", action="store_true", default=False)
+parser.add_option("--fm", dest="freq_mask", help="Augment with frequency mask in training. (Default=false).", action="store_true", default=False)
+parser.add_option("--tm", dest="time_mask", help="Augment with time mask in training. (Default=false).", action="store_true", default=False)
 parser.add_option("--vf", dest="vertical_flips", help="Augment with vertical flips in training. (Default=false).", action="store_true", default=False)
 parser.add_option("--rot", "--rot_90", dest="rot_90", help="Augment with 90 degree rotations in training. (Default=false).",
 				  action="store_true", default=False)
@@ -79,6 +81,8 @@ C = config.Config()
 C.use_horizontal_flips = bool(options.horizontal_flips)
 C.use_vertical_flips = bool(options.vertical_flips)
 C.rot_90 = bool(options.rot_90)
+C.use_freq_mask = bool(options.freq_mask)
+C.use_time_mask = bool(options.time_mask)
 
 C.model_path = options.output_weight_path
 C.num_rois = int(options.num_rois)
@@ -155,11 +159,13 @@ random.shuffle(all_imgs)
 num_imgs = len(all_imgs)
 
 # split to train and val
-train_imgs = [s for s in all_imgs if s['imageset'] == 'trainval']
-val_imgs = [s for s in all_imgs if s['imageset'] == 'test']
+train_imgs = [s for s in all_imgs if s['imageset'] == 'train']
+val_imgs = [s for s in all_imgs if s['imageset'] == 'val']
+test_imgs = [s for s in all_imgs if s['imageset'] == 'test']
 
 print('Num train samples {}'.format(len(train_imgs)))
 print('Num val samples {}'.format(len(val_imgs)))
+print('Num test samples {}'.format(len(test_imgs)))
 
 
 data_gen_train = data_generators.get_anchor_gt(train_imgs, classes_count, C, nn.get_img_output_length, K.image_dim_ordering(), mode='train')

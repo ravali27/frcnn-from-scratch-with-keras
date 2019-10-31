@@ -13,18 +13,20 @@ class Config:
 		self.use_horizontal_flips = False
 		self.use_vertical_flips = False
 		self.rot_90 = False
+		self.use_freq_mask = False
+		self.use_time_mask = False
 
 		# anchor box scales
 		self.anchor_box_scales = [128, 256, 512]
 
 		# anchor box ratios
-		self.anchor_box_ratios = [[1, 1], [1, 2], [2, 1]]
+		self.anchor_box_ratios = [[1, 1], [1, 4], [4, 1]]
 
 		# size to resize the smallest side of the image
 		self.im_size = 600
 
 		# image channel-wise mean to subtract
-		self.img_channel_mean = [103.939, 116.779, 123.68]
+		self.img_channel_mean = [0, 0, 0]
 		self.img_scaling_factor = 1.0
 
 		# number of ROIs at once
@@ -36,7 +38,7 @@ class Config:
 		self.balanced_classes = False
 
 		# scaling the stdev
-		self.std_scaling = 4.0
+		self.std_scaling = 1.0
 		self.classifier_regr_std = [8.0, 8.0, 4.0, 4.0]
 
 		# overlaps for RPN
